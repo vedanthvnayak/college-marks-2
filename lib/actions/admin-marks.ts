@@ -15,6 +15,7 @@ export async function getAllMarks() {
           roll_no,
           name,
           group_no,
+          assigned_roll_no,
           college:colleges(name, code)
         ),
         judge:judges(name)

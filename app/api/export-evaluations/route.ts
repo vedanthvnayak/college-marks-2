@@ -15,34 +15,39 @@ export async function GET(request: NextRequest) {
     // Create Excel workbook
     const workbook = XLSX.utils.book_new()
 
-    // Prepare data for Excel
-    const excelData = individualMarks.map((mark: any) => ({
-      "Student Name": mark.student?.name || "N/A",
-      "Roll Number": mark.student?.roll_no || "N/A",
-      "Assigned Roll Number": mark.student?.assigned_roll_no || "N/A",
-      "Group Number": mark.student?.group_no || "N/A",
-      College: mark.student?.college?.name || "N/A",
-      "Judge Name": mark.judge?.name || "N/A",
-      Marks: mark.marks,
-      Comments: mark.comments || "",
-      "Evaluated At": new Date(mark.created_at).toLocaleString(),
+    const studentMarksMap = new Map()
+
+    individualMarks.forEach((mark: any) => {
+      const studentKey = mark.student_id
+      if (!studentMarksMap.has(studentKey)) {
+        studentMarksMap.set(studentKey, {
+          name: mark.student?.name || "N/A",
+          assignedRollNo: mark.student?.assigned_roll_no || "N/A",
+          marks: [],
+          total: 0,
+        })
+      }
+
+      const studentData = studentMarksMap.get(studentKey)
+      studentData.marks.push(mark.marks)
+      studentData.total += mark.marks
+    })
+
+    const excelData = Array.from(studentMarksMap.values()).map((student: any) => ({
+      "Student Name": student.name,
+      "Assigned Roll Number": student.assignedRollNo,
+      "All Marks": student.marks.join(", "),
+      Total: student.total,
     }))
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(excelData)
 
-    // Set column widths
     worksheet["!cols"] = [
-      { width: 20 }, // Student Name
-      { width: 15 }, // Roll Number
+      { width: 25 }, // Student Name
       { width: 20 }, // Assigned Roll Number
-      { width: 15 }, // Group Number
-      { width: 25 }, // College
-      { width: 15 }, // College Code
-      { width: 20 }, // Judge Name
-      { width: 10 }, // Marks
-      { width: 30 }, // Comments
-      { width: 20 }, // Evaluated At
+      { width: 40 }, // All Marks
+      { width: 15 }, // Total
     ]
 
     XLSX.utils.book_append_sheet(workbook, worksheet, "Student Evaluations")
