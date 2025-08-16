@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 
 import { useState } from "react"
 
-import { User, Star } from "path-to-icons" // Import the User and Star icons here
+import { User, Star } from "lucide-react"
 
 interface MarksOverviewProps {
   individualMarks: any[]
