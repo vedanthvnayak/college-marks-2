@@ -1,12 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
+import { verifyJudgeSession } from "@/lib/auth/judge"
 
 export async function POST(request: NextRequest) {
   try {
-    const { judgeId, studentId, marks, comments } = await request.json()
+    const { studentId, marks, comments } = await request.json()
 
-    if (!judgeId || !studentId || marks === undefined) {
+    if (!studentId || marks === undefined) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    const cookieStore = await cookies()
+    const sessionToken = cookieStore.get("judge-session")?.value
+
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    const judge = await verifyJudgeSession(sessionToken)
+    if (!judge) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
 
     const supabase = createServerClient()
@@ -14,18 +28,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
     }
 
-    // Insert individual mark
-    const { error } = await supabase.from("individual_marks").insert({
-      judge_id: judgeId,
-      student_id: studentId,
-      marks: marks,
-      comments: comments || null,
-    })
+    const { error } = await supabase.from("individual_marks").upsert(
+      {
+        judge_id: judge.id,
+        student_id: studentId,
+        marks: marks,
+        comments: comments || null,
+      },
+      {
+        onConflict: "judge_id,student_id",
+      },
+    )
 
     if (error) {
-      if (error.code === "23505") {
-        return NextResponse.json({ error: "You have already marked this student" }, { status: 400 })
-      }
+      console.error("Database error:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
