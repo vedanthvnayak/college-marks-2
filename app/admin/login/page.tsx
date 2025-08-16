@@ -5,7 +5,7 @@ import AdminLoginForm from "@/components/admin-login-form"
 
 export default async function AdminLoginPage() {
   // Check if admin is already logged in
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const sessionToken = cookieStore.get("admin-session")?.value
 
   if (sessionToken) {
