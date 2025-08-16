@@ -28,8 +28,8 @@ export async function submitIndividualMark(prevState: any, formData: FormData) {
   }
 
   try {
-    // Always insert new marks instead of upserting
-    const { data, error } = await supabase
+    // Try to insert new marks first, fallback to upsert if constraint exists
+    let { data, error } = await supabase
       .from("individual_marks")
       .insert({
         student_id: studentId.toString(),
@@ -39,6 +39,26 @@ export async function submitIndividualMark(prevState: any, formData: FormData) {
       })
       .select()
       .single()
+
+    // If insert fails due to unique constraint, fallback to upsert
+    if (error && error.code === '23505') {
+      console.log("Unique constraint exists, falling back to upsert")
+      const { data: upsertData, error: upsertError } = await supabase
+        .from("individual_marks")
+        .upsert(
+          {
+            student_id: studentId.toString(),
+            judge_id: judgeId.toString(),
+            marks: marksValue,
+            comments: comments?.toString() || null,
+          },
+          { onConflict: "student_id,judge_id" }
+        )
+        .select()
+        .single()
+      data = upsertData
+      error = upsertError
+    }
 
     if (error) {
       return { error: error.message }

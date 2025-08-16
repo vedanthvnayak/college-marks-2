@@ -28,13 +28,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
     }
 
-    // Always insert new marks instead of upserting
-    const { error } = await supabase.from("individual_marks").insert({
+    // Try to insert new marks first, fallback to upsert if constraint exists
+    let { error } = await supabase.from("individual_marks").insert({
       judge_id: judge.id,
       student_id: studentId,
       marks: marks,
       comments: comments || null,
     })
+
+    // If insert fails due to unique constraint, fallback to upsert
+    if (error && error.code === '23505') {
+      console.log("Unique constraint exists, falling back to upsert")
+      const { error: upsertError } = await supabase.from("individual_marks").upsert(
+        {
+          judge_id: judge.id,
+          student_id: studentId,
+          marks: marks,
+          comments: comments || null,
+        },
+        {
+          onConflict: "judge_id,student_id",
+        }
+      )
+      error = upsertError
+    }
 
     if (error) {
       console.error("Database error:", error)
