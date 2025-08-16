@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, BarChart3, User, Download } from "lucide-react"
 import Link from "next/link"
-import { MarksOverview } from "@/components/marks-overview"
+import { StudentTransactionsOverview } from "@/components/student-transactions-overview"
 
 export default async function EvaluationsPage() {
   const cookieStore = cookies()
@@ -82,40 +82,16 @@ export default async function EvaluationsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Evaluations</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalEvaluations}</div>
-              <p className="text-xs text-muted-foreground">
-                {totalEvaluations === 0 ? "No evaluations yet" : "Completed evaluations"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Individual Marks</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{individualMarks.length}</div>
-              <p className="text-xs text-muted-foreground">Student evaluations</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Marks Overview */}
+        {/* Student Transactions Overview */}
         <Card>
           <CardHeader>
-            <CardTitle>All Student Evaluations</CardTitle>
+            <CardTitle className="flex items-center">
+              <User className="h-5 w-5 mr-2" />
+              Student Transactions Overview
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <MarksOverview individualMarks={individualMarks} />
+            <StudentTransactionsOverview individualMarks={individualMarks} />
           </CardContent>
         </Card>
       </main>
