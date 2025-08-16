@@ -28,17 +28,15 @@ export async function submitIndividualMark(prevState: any, formData: FormData) {
   }
 
   try {
+    // Always insert new marks instead of upserting
     const { data, error } = await supabase
       .from("individual_marks")
-      .upsert(
-        {
-          student_id: studentId.toString(),
-          judge_id: judgeId.toString(),
-          marks: marksValue,
-          comments: comments?.toString() || null,
-        },
-        { onConflict: "student_id,judge_id" },
-      )
+      .insert({
+        student_id: studentId.toString(),
+        judge_id: judgeId.toString(),
+        marks: marksValue,
+        comments: comments?.toString() || null,
+      })
       .select()
       .single()
 

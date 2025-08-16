@@ -22,22 +22,38 @@ export async function GET(request: NextRequest) {
       if (!studentMarksMap.has(studentKey)) {
         studentMarksMap.set(studentKey, {
           name: mark.student?.name || "N/A",
+          rollNo: mark.student?.roll_no || "N/A",
           assignedRollNo: mark.student?.assigned_roll_no || "N/A",
+          collegeName: mark.student?.college?.name || "N/A",
+          groupNo: mark.student?.group_no || "N/A",
           marks: [],
+          comments: [],
+          judges: [],
+          dates: [],
           total: 0,
         })
       }
 
       const studentData = studentMarksMap.get(studentKey)
       studentData.marks.push(mark.marks)
-      studentData.total += mark.marks
+      studentData.comments.push(mark.comments || "")
+      studentData.judges.push(mark.judge?.name || "N/A")
+      studentData.dates.push(new Date(mark.created_at).toLocaleDateString())
+      studentData.total += Number(mark.marks) || 0
     })
 
     const excelData = Array.from(studentMarksMap.values()).map((student: any) => ({
       "Student Name": student.name,
+      "Roll Number": student.rollNo,
       "Assigned Roll Number": student.assignedRollNo,
+      "College": student.collegeName,
+      "Group": student.groupNo,
       "All Marks": student.marks.join(", "),
-      Total: student.total,
+      "All Comments": student.comments.join(" | "),
+      "All Judges": student.judges.join(", "),
+      "All Dates": student.dates.join(", "),
+      "Total Marks": student.total.toFixed(2),
+      "Transaction Count": student.marks.length,
     }))
 
     // Create worksheet
@@ -45,9 +61,16 @@ export async function GET(request: NextRequest) {
 
     worksheet["!cols"] = [
       { width: 25 }, // Student Name
+      { width: 15 }, // Roll Number
       { width: 20 }, // Assigned Roll Number
-      { width: 40 }, // All Marks
-      { width: 15 }, // Total
+      { width: 25 }, // College
+      { width: 10 }, // Group
+      { width: 50 }, // All Marks
+      { width: 60 }, // All Comments
+      { width: 30 }, // All Judges
+      { width: 40 }, // All Dates
+      { width: 15 }, // Total Marks
+      { width: 15 }, // Transaction Count
     ]
 
     XLSX.utils.book_append_sheet(workbook, worksheet, "Student Evaluations")

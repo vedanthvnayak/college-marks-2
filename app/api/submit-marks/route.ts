@@ -28,17 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
     }
 
-    const { error } = await supabase.from("individual_marks").upsert(
-      {
-        judge_id: judge.id,
-        student_id: studentId,
-        marks: marks,
-        comments: comments || null,
-      },
-      {
-        onConflict: "judge_id,student_id",
-      },
-    )
+    // Always insert new marks instead of upserting
+    const { error } = await supabase.from("individual_marks").insert({
+      judge_id: judge.id,
+      student_id: studentId,
+      marks: marks,
+      comments: comments || null,
+    })
 
     if (error) {
       console.error("Database error:", error)
