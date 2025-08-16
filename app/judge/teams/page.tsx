@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import TeamMarkForm from "@/components/team-mark-form"
+import { Card, CardContent } from "@/components/ui/card"
 
 export default async function TeamsPage() {
   const cookieStore = cookies()
@@ -20,10 +21,22 @@ export default async function TeamsPage() {
     redirect("/judge/login")
   }
 
-  const { data: teams } = await getTeamsByCollege(judge.college_id)
+  const teamsResult = await getTeamsByCollege(judge.college_id)
 
-  const handleSuccess = () => {
-    // This will be handled by the client component
+  if (teamsResult.error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-lg font-semibold text-red-600 mb-2">Error Loading Teams</h2>
+            <p className="text-muted-foreground mb-4">{teamsResult.error}</p>
+            <Link href="/judge">
+              <Button>Back to Dashboard</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -50,9 +63,8 @@ export default async function TeamsPage() {
           collegeId={judge.college_id}
           collegeName={judge.colleges.name}
           collegeCode={judge.colleges.code}
-          teams={teams}
+          teams={teamsResult.data}
           judgeId={judge.id}
-          onSuccess={handleSuccess}
         />
       </main>
     </div>

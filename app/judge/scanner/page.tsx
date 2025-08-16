@@ -4,7 +4,7 @@ import { verifyJudgeSession } from "@/lib/auth/judge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import QRScannerInterface from "@/components/qr-scanner-interface"
+import SimpleQRScanner from "@/components/simple-qr-scanner"
 
 export default async function QRScannerPage() {
   const cookieStore = cookies()
@@ -39,7 +39,7 @@ export default async function QRScannerPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <QRScannerInterface judgeId={judge.id} />
+        <SimpleQRScanner judgeId={judge.id} />
       </main>
     </div>
   )

@@ -165,7 +165,8 @@ export default function StudentUploadForm({ colleges }: { colleges: College[] })
                   className="bg-input border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Upload Excel file with student data (Headers: No of students, Roll No., Name, Group No.)
+                  Upload Excel file with student data (Headers: No of students, Roll No., Name, Group No., Assigned Roll
+                  Number)
                 </p>
               </div>
             </div>

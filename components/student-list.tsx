@@ -5,14 +5,14 @@ import { getStudents, deleteStudent } from "@/lib/actions/student"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, QrCode, Loader2 } from "lucide-react"
+import { Trash2, Loader2 } from "lucide-react"
 
 interface Student {
   id: string
   roll_no: string
   name: string
   group_no: string
-  qr_code_data: string
+  assigned_roll_no?: string
   colleges: {
     name: string
     code: string
@@ -33,31 +33,6 @@ function DeleteButton({ studentId }: { studentId: string }) {
         <Trash2 className="h-4 w-4" />
       </Button>
     </form>
-  )
-}
-
-function QRButton({ studentId }: { studentId: string }) {
-  return (
-    <a
-      href={`/api/download-qr?studentId=${studentId}`}
-      download
-      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-primary hover:text-primary hover:bg-primary/10"
-    >
-      <QrCode className="h-4 w-4" />
-    </a>
-  )
-}
-
-function MassQRButton({ collegeId }: { collegeId: string }) {
-  return (
-    <a
-      href={`/api/download-mass-qr?collegeId=${collegeId}`}
-      download
-      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
-    >
-      <QrCode className="h-4 w-4 mr-2" />
-      Download All QR Codes
-    </a>
   )
 }
 
@@ -120,7 +95,8 @@ export default function StudentList({
     ? students.filter(
         (student) =>
           student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          student.roll_no.toLowerCase().includes(searchTerm.toLowerCase()),
+          student.roll_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (student.assigned_roll_no && student.assigned_roll_no.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     : students
 
@@ -148,15 +124,10 @@ export default function StudentList({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-semibold">
-            Students ({filteredStudents.length})
-            {searchTerm && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">Search: "{searchTerm}"</span>
-            )}
-          </CardTitle>
-          {collegeId && <MassQRButton collegeId={collegeId} />}
-        </div>
+        <CardTitle className="text-xl font-semibold">
+          Students ({filteredStudents.length})
+          {searchTerm && <span className="text-sm font-normal text-muted-foreground ml-2">Search: "{searchTerm}"</span>}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -174,12 +145,12 @@ export default function StudentList({
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Roll: {student.roll_no}</span>
+                  {student.assigned_roll_no && <span>Assigned: {student.assigned_roll_no}</span>}
                   <span>Group: {student.group_no}</span>
                   <span>College: {student.colleges.name}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <QRButton studentId={student.id} />
                 <DeleteButton studentId={student.id} />
               </div>
             </div>

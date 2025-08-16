@@ -25,28 +25,27 @@ export async function generateExcelTemplate(collegeId: string) {
     // Create Excel workbook with template
     const workbook = XLSX.utils.book_new()
 
-    // Create headers as specified
-    const headers = ["No of students", "Roll No.", "Name", "Group No."]
+    const headers = ["No of students", "Roll No.", "Name", "Group No.", "Assigned Roll Number"]
 
     // Create sample data with instructions
     const sampleData = [
       headers,
-      ["1", "CS001", "John Doe", "A1"],
-      ["2", "CS002", "Jane Smith", "A1"],
-      ["3", "CS003", "Bob Johnson", "B2"],
-      ["", "", "", ""],
-      ["Instructions:", "", "", ""],
-      ["1. Fill student data starting from row 2", "", "", ""],
-      ["2. No of students: Sequential number", "", "", ""],
-      ["3. Roll No.: Unique student roll number", "", "", ""],
-      ["4. Name: Full student name", "", "", ""],
-      ["5. Group No.: Team/group identifier", "", "", ""],
+      ["1", "CS001", "John Doe", "A1", "ARN001"],
+      ["2", "CS002", "Jane Smith", "A1", "ARN002"],
+      ["3", "CS003", "Bob Johnson", "B2", "ARN003"],
+      ["", "", "", "", ""],
+      ["Instructions:", "", "", "", ""],
+      ["1. Fill student data starting from row 2", "", "", "", ""],
+      ["2. No of students: Sequential number", "", "", "", ""],
+      ["3. Roll No.: Unique student roll number", "", "", "", ""],
+      ["4. Name: Full student name", "", "", "", ""],
+      ["5. Group No.: Team/group identifier", "", "", "", ""],
+      ["6. Assigned Roll Number: Unique identifier for evaluation", "", "", "", ""],
     ]
 
     const worksheet = XLSX.utils.aoa_to_sheet(sampleData)
 
-    // Set column widths
-    worksheet["!cols"] = [{ width: 15 }, { width: 15 }, { width: 25 }, { width: 15 }]
+    worksheet["!cols"] = [{ width: 15 }, { width: 15 }, { width: 25 }, { width: 15 }, { width: 20 }]
 
     XLSX.utils.book_append_sheet(workbook, worksheet, `${college.code}_Students`)
 
@@ -96,22 +95,20 @@ export async function processStudentUpload(prevState: any, formData: FormData) {
     const students = []
     for (let i = 1; i < data.length; i++) {
       const row = data[i]
-      if (!row[1] || !row[2] || !row[3]) continue // Skip empty rows
+      if (!row[1] || !row[2] || !row[3] || !row[4]) continue // Skip empty rows
 
       const rollNo = row[1]?.toString().trim()
       const name = row[2]?.toString().trim()
       const groupNo = row[3]?.toString().trim()
+      const assignedRollNo = row[4]?.toString().trim()
 
-      if (rollNo && name && groupNo) {
-        // Generate QR code data (unique identifier)
-        const qrCodeData = `${collegeId}-${rollNo}-${Date.now()}`
-
+      if (rollNo && name && groupNo && assignedRollNo) {
         students.push({
           college_id: collegeId,
           roll_no: rollNo,
           name: name,
           group_no: groupNo,
-          qr_code_data: qrCodeData,
+          assigned_roll_no: assignedRollNo,
         })
       }
     }
@@ -125,7 +122,7 @@ export async function processStudentUpload(prevState: any, formData: FormData) {
 
     if (error) {
       if (error.code === "23505") {
-        return { error: "Some roll numbers already exist for this college" }
+        return { error: "Some roll numbers or assigned roll numbers already exist for this college" }
       }
       return { error: error.message }
     }
@@ -175,7 +172,9 @@ export async function getStudents(collegeId?: string, searchTerm?: string) {
       const searchLower = searchTerm.toLowerCase()
       filteredData = filteredData.filter(
         (student) =>
-          student.name.toLowerCase().includes(searchLower) || student.roll_no.toLowerCase().includes(searchLower),
+          student.name.toLowerCase().includes(searchLower) ||
+          student.roll_no.toLowerCase().includes(searchLower) ||
+          student.assigned_roll_no?.toLowerCase().includes(searchLower),
       )
     }
 
@@ -183,49 +182,6 @@ export async function getStudents(collegeId?: string, searchTerm?: string) {
   } catch (error) {
     console.error("Get students error:", error)
     return { data: [], error: "Failed to fetch students" }
-  }
-}
-
-export async function generateQRCode(studentId: string) {
-  const supabase = createServerClient()
-  if (!supabase) {
-    return { error: "Database connection failed" }
-  }
-
-  try {
-    const { data: student, error } = await supabase
-      .from("students")
-      .select(`
-        *,
-        colleges (
-          name,
-          code
-        )
-      `)
-      .eq("id", studentId)
-      .single()
-
-    if (error || !student) {
-      return { error: "Student not found" }
-    }
-
-    // Generate QR code as SVG
-    const QRCode = require("qrcode")
-    const qrCodeSVG = await QRCode.toString(student.qr_code_data, {
-      type: "svg",
-      width: 200,
-      margin: 2,
-    })
-
-    return {
-      success: true,
-      qrCode: qrCodeSVG,
-      student: student,
-      filename: `${student.colleges.code}_${student.roll_no}_${student.name.replace(/\s+/g, "_")}_QR.svg`,
-    }
-  } catch (error) {
-    console.error("Generate QR code error:", error)
-    return { error: "Failed to generate QR code" }
   }
 }
 
@@ -250,58 +206,10 @@ export async function deleteStudent(studentId: string) {
   }
 }
 
+export async function generateQRCode(studentId: string) {
+  return { error: "QR code functionality has been removed. Please use assigned roll numbers instead." }
+}
+
 export async function generateMassQRCodes(collegeId: string) {
-  const supabase = createServerClient()
-  if (!supabase) {
-    return { error: "Database connection failed" }
-  }
-
-  try {
-    const { data: students, error } = await supabase
-      .from("students")
-      .select(`
-        *,
-        colleges (
-          name,
-          code
-        )
-      `)
-      .eq("college_id", collegeId)
-      .order("roll_no", { ascending: true })
-
-    if (error || !students || students.length === 0) {
-      return { error: "No students found for this college" }
-    }
-
-    const QRCode = require("qrcode")
-    const qrCodes = []
-
-    // Generate QR codes for all students
-    for (const student of students) {
-      const qrCodeDataURL = await QRCode.toDataURL(student.qr_code_data, {
-        width: 150,
-        margin: 2,
-      })
-
-      qrCodes.push({
-        id: student.id,
-        name: student.name,
-        rollNo: student.roll_no,
-        groupNo: student.group_no,
-        collegeName: student.colleges.name,
-        collegeCode: student.colleges.code,
-        qrCode: qrCodeDataURL,
-      })
-    }
-
-    return {
-      success: true,
-      qrCodes,
-      collegeName: students[0].colleges.name,
-      collegeCode: students[0].colleges.code,
-    }
-  } catch (error) {
-    console.error("Generate mass QR codes error:", error)
-    return { error: "Failed to generate QR codes" }
-  }
+  return { error: "QR code functionality has been removed. Please use assigned roll numbers instead." }
 }
