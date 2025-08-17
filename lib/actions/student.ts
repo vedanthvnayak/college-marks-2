@@ -192,23 +192,66 @@ export async function deleteAllStudentsByCollege(collegeId: string) {
   }
 
   try {
-    // First, delete all individual marks for students in this college
+    console.log(`Starting deletion for college ID: ${collegeId}`)
+
+    // Get all student IDs for this college first
+    const { data: students, error: fetchError } = await supabase
+      .from("students")
+      .select("id")
+      .eq("college_id", collegeId)
+
+    if (fetchError) {
+      console.error("Error fetching students:", fetchError)
+      return { error: `Failed to fetch students: ${fetchError.message}` }
+    }
+
+    if (!students || students.length === 0) {
+      console.log("No students found to delete")
+      return { success: true, message: "No students found to delete" }
+    }
+
+    const studentIds = students.map(s => s.id)
+    console.log(`Found ${students.length} students to delete:`, studentIds)
+
+    // Check if there are any individual marks for these students
+    const { data: marksCount, error: marksCountError } = await supabase
+      .from("individual_marks")
+      .select("id", { count: "exact" })
+      .in("student_id", studentIds)
+
+    if (marksCountError) {
+      console.error("Error counting marks:", marksCountError)
+    } else {
+      console.log(`Found ${marksCount?.length || 0} individual marks to delete`)
+    }
+
+    // Delete all individual marks for these students
     const { error: marksError } = await supabase
       .from("individual_marks")
       .delete()
-      .in("student_id", 
-        supabase
-          .from("students")
-          .select("id")
-          .eq("college_id", collegeId)
-      )
+      .in("student_id", studentIds)
 
     if (marksError) {
       console.error("Error deleting marks:", marksError)
       return { error: `Failed to delete marks: ${marksError.message}` }
     }
 
-    // Then delete all students from the college
+    console.log("Successfully deleted individual marks")
+
+    // Delete all team marks for this college (if any)
+    const { error: teamMarksError } = await supabase
+      .from("team_marks")
+      .delete()
+      .eq("college_id", collegeId)
+
+    if (teamMarksError) {
+      console.error("Error deleting team marks:", teamMarksError)
+      return { error: `Failed to delete team marks: ${teamMarksError.message}` }
+    }
+
+    console.log("Successfully deleted team marks")
+
+    // Finally delete all students from the college
     const { error: studentsError } = await supabase
       .from("students")
       .delete()
@@ -219,11 +262,114 @@ export async function deleteAllStudentsByCollege(collegeId: string) {
       return { error: `Failed to delete students: ${studentsError.message}` }
     }
 
+    console.log("Successfully deleted students")
+
     revalidatePath("/admin/students")
-    return { success: true }
+    return { 
+      success: true, 
+      message: `Successfully deleted ${students.length} students and all related data from college` 
+    }
   } catch (error) {
     console.error("Delete all students error:", error)
     return { error: "Failed to delete students" }
+  }
+}
+
+export async function deleteStudentEvaluations(studentId: string) {
+  const supabase = createServerClient()
+  if (!supabase) {
+    return { error: "Database connection failed" }
+  }
+
+  try {
+    console.log(`Starting deletion of evaluations for student ID: ${studentId}`)
+
+    // Delete all individual marks for this student
+    const { error: marksError } = await supabase
+      .from("individual_marks")
+      .delete()
+      .eq("student_id", studentId)
+
+    if (marksError) {
+      console.error("Error deleting student marks:", marksError)
+      return { error: `Failed to delete student marks: ${marksError.message}` }
+    }
+
+    console.log("Successfully deleted student evaluations")
+    revalidatePath("/admin/students")
+    revalidatePath("/admin/evaluations")
+    
+    return { 
+      success: true, 
+      message: "Successfully deleted all evaluations for this student" 
+    }
+  } catch (error) {
+    console.error("Delete student evaluations error:", error)
+    return { error: "Failed to delete student evaluations" }
+  }
+}
+
+export async function deleteAllEvaluationsByCollege(collegeId: string) {
+  const supabase = createServerClient()
+  if (!supabase) {
+    return { error: "Database connection failed" }
+  }
+
+  try {
+    console.log(`Starting deletion of all evaluations for college ID: ${collegeId}`)
+
+    // Get all student IDs for this college
+    const { data: students, error: fetchError } = await supabase
+      .from("students")
+      .select("id")
+      .eq("college_id", collegeId)
+
+    if (fetchError) {
+      console.error("Error fetching students:", fetchError)
+      return { error: `Failed to fetch students: ${fetchError.message}` }
+    }
+
+    if (!students || students.length === 0) {
+      console.log("No students found for this college")
+      return { success: true, message: "No students found for this college" }
+    }
+
+    const studentIds = students.map(s => s.id)
+    console.log(`Found ${students.length} students for evaluation deletion`)
+
+    // Delete all individual marks for these students
+    const { error: marksError } = await supabase
+      .from("individual_marks")
+      .delete()
+      .in("student_id", studentIds)
+
+    if (marksError) {
+      console.error("Error deleting marks:", marksError)
+      return { error: `Failed to delete marks: ${marksError.message}` }
+    }
+
+    // Delete all team marks for this college
+    const { error: teamMarksError } = await supabase
+      .from("team_marks")
+      .delete()
+      .eq("college_id", collegeId)
+
+    if (teamMarksError) {
+      console.error("Error deleting team marks:", teamMarksError)
+      return { error: "Failed to delete team marks: ${teamMarksError.message}" }
+    }
+
+    console.log("Successfully deleted all evaluations for college")
+    revalidatePath("/admin/students")
+    revalidatePath("/admin/evaluations")
+    
+    return { 
+      success: true, 
+      message: `Successfully deleted all evaluations for ${students.length} students in this college` 
+    }
+  } catch (error) {
+    console.error("Delete all evaluations by college error:", error)
+    return { error: "Failed to delete evaluations" }
   }
 }
 

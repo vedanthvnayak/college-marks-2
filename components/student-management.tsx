@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Search, Users, Trash2, AlertTriangle } from "lucide-react"
 import StudentList from "./student-list"
-import { deleteAllStudentsByCollege } from "@/lib/actions/student"
+import { deleteAllStudentsByCollege, deleteAllEvaluationsByCollege } from "@/lib/actions/student"
 
 interface College {
   id: string
@@ -26,6 +26,9 @@ export default function StudentManagement({ colleges }: StudentManagementProps) 
   const [deleteMessage, setDeleteMessage] = useState("")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [collegeToDelete, setCollegeToDelete] = useState<College | null>(null)
+  const [isDeletingEvaluations, setIsDeletingEvaluations] = useState(false)
+  const [showDeleteEvaluationsConfirm, setShowDeleteEvaluationsConfirm] = useState(false)
+  const [collegeToDeleteEvaluations, setCollegeToDeleteEvaluations] = useState<College | null>(null)
 
   const handleDeleteAllStudents = async (college: College) => {
     setCollegeToDelete(college)
@@ -41,9 +44,11 @@ export default function StudentManagement({ colleges }: StudentManagementProps) 
     try {
       const result = await deleteAllStudentsByCollege(collegeToDelete.id)
       if (result.success) {
-        setDeleteMessage(`Successfully deleted all students from ${collegeToDelete.name}`)
+        setDeleteMessage(result.message || `Successfully deleted all students from ${collegeToDelete.name}`)
         // Refresh the page to show updated data
-        window.location.reload()
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000) // Give user time to see the success message
       } else {
         setDeleteMessage(`Error: ${result.error}`)
       }
@@ -59,6 +64,43 @@ export default function StudentManagement({ colleges }: StudentManagementProps) 
   const cancelDelete = () => {
     setShowDeleteConfirm(false)
     setCollegeToDelete(null)
+    setDeleteMessage("")
+  }
+
+  const handleDeleteAllEvaluations = async (college: College) => {
+    setCollegeToDeleteEvaluations(college)
+    setShowDeleteEvaluationsConfirm(true)
+  }
+
+  const confirmDeleteEvaluations = async () => {
+    if (!collegeToDeleteEvaluations) return
+
+    setIsDeletingEvaluations(true)
+    setDeleteMessage("")
+    
+    try {
+      const result = await deleteAllEvaluationsByCollege(collegeToDeleteEvaluations.id)
+      if (result.success) {
+        setDeleteMessage(result.message || `Successfully deleted all evaluations from ${collegeToDeleteEvaluations.name}`)
+        // Refresh the page to show updated data
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      } else {
+        setDeleteMessage(`Error: ${result.error}`)
+      }
+    } catch (error) {
+      setDeleteMessage("An unexpected error occurred")
+    } finally {
+      setIsDeletingEvaluations(false)
+      setShowDeleteEvaluationsConfirm(false)
+      setCollegeToDeleteEvaluations(null)
+    }
+  }
+
+  const cancelDeleteEvaluations = () => {
+    setShowDeleteEvaluationsConfirm(false)
+    setCollegeToDeleteEvaluations(null)
     setDeleteMessage("")
   }
 
@@ -108,15 +150,26 @@ export default function StudentManagement({ colleges }: StudentManagementProps) 
                   <h3 className="text-lg font-semibold text-card-foreground">
                     {college.name} ({college.code})
                   </h3>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteAllStudents(college)}
-                    className="flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete All Students
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteAllEvaluations(college)}
+                      className="flex items-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete All Evaluations
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteAllStudents(college)}
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete All Students
+                    </Button>
+                  </div>
                 </div>
                 <StudentList collegeId={college.id} searchTerm={searchTerm} />
               </div>
@@ -128,15 +181,26 @@ export default function StudentManagement({ colleges }: StudentManagementProps) 
               <h3 className="text-lg font-semibold text-card-foreground">
                 {colleges.find(c => c.id === selectedCollege)?.name} ({colleges.find(c => c.id === selectedCollege)?.code})
               </h3>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleDeleteAllStudents(colleges.find(c => c.id === selectedCollege)!)}
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete All Students
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDeleteAllEvaluations(colleges.find(c => c.id === selectedCollege)!)}
+                  className="flex items-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete All Evaluations
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteAllStudents(colleges.find(c => c.id === selectedCollege)!)}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete All Students
+                </Button>
+              </div>
             </div>
             <StudentList collegeId={selectedCollege} searchTerm={searchTerm} />
           </div>
