@@ -2,11 +2,12 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { verifyAdminSession } from "@/lib/auth/admin"
 import { getAllMarks } from "@/lib/actions/admin-marks"
+import { getColleges } from "@/lib/actions/college"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, BarChart3, User, Download } from "lucide-react"
 import Link from "next/link"
-import { StudentTransactionsOverview } from "@/components/student-transactions-overview"
+import { StudentTransactionsTable } from "@/components/student-transactions-table"
 
 export default async function EvaluationsPage() {
   const cookieStore = cookies()
@@ -22,6 +23,7 @@ export default async function EvaluationsPage() {
   }
 
   const { data: marksData, error } = await getAllMarks()
+  const { data: colleges } = await getColleges()
 
   if (error) {
     return (
@@ -70,28 +72,38 @@ export default async function EvaluationsPage() {
                 <h1 className="text-2xl font-bold text-card-foreground">Evaluations Overview</h1>
                 <p className="text-muted-foreground">View and export all student marks</p>
               </div>
-              <Link href="/api/export-evaluations">
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Excel
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href="/api/export-evaluations">
+                  <Button variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    All Colleges
+                  </Button>
+                </Link>
+                {colleges.map((college: any) => (
+                  <Link key={college.id} href={`/api/export-evaluations?college=${encodeURIComponent(college.name)}`}>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      {college.name}
+                    </Button>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Student Transactions Overview */}
+        {/* Student Transactions Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <User className="h-5 w-5 mr-2" />
-              Student Transactions Overview
+              Student Transactions Table
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <StudentTransactionsOverview individualMarks={individualMarks} />
+            <StudentTransactionsTable individualMarks={individualMarks} />
           </CardContent>
         </Card>
       </main>
