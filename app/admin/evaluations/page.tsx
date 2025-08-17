@@ -5,6 +5,7 @@ import { getAllMarks } from "@/lib/actions/admin-marks"
 import { getColleges } from "@/lib/actions/college"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, BarChart3, User, Download } from "lucide-react"
 import Link from "next/link"
 import { StudentTransactionsTable } from "@/components/student-transactions-table"
@@ -73,20 +74,33 @@ export default async function EvaluationsPage() {
                 <p className="text-muted-foreground">View and export all student marks</p>
               </div>
               <div className="flex items-center gap-2">
-                <Link href="/api/export-evaluations">
-                  <Button variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    All Colleges
-                  </Button>
-                </Link>
-                {colleges.map((college: any) => (
-                  <Link key={college.id} href={`/api/export-evaluations?college=${encodeURIComponent(college.name)}`}>
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      {college.name}
-                    </Button>
-                  </Link>
-                ))}
+                <Select onValueChange={(value) => {
+                  if (value && value !== 'select') {
+                    const url = value === 'all' 
+                      ? '/api/export-evaluations' 
+                      : `/api/export-evaluations?college=${encodeURIComponent(value)}`
+                    window.open(url, '_blank')
+                  }
+                }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select College to Download" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="select" disabled>Select College</SelectItem>
+                    {colleges.map((college: any) => (
+                      <SelectItem key={college.id} value={college.name}>
+                        {college.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open('/api/export-evaluations', '_blank')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
               </div>
             </div>
           </div>

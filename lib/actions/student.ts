@@ -185,6 +185,48 @@ export async function getStudents(collegeId?: string, searchTerm?: string) {
   }
 }
 
+export async function deleteAllStudentsByCollege(collegeId: string) {
+  const supabase = createServerClient()
+  if (!supabase) {
+    return { error: "Database connection failed" }
+  }
+
+  try {
+    // First, delete all individual marks for students in this college
+    const { error: marksError } = await supabase
+      .from("individual_marks")
+      .delete()
+      .in("student_id", 
+        supabase
+          .from("students")
+          .select("id")
+          .eq("college_id", collegeId)
+      )
+
+    if (marksError) {
+      console.error("Error deleting marks:", marksError)
+      return { error: `Failed to delete marks: ${marksError.message}` }
+    }
+
+    // Then delete all students from the college
+    const { error: studentsError } = await supabase
+      .from("students")
+      .delete()
+      .eq("college_id", collegeId)
+
+    if (studentsError) {
+      console.error("Error deleting students:", studentsError)
+      return { error: `Failed to delete students: ${studentsError.message}` }
+    }
+
+    revalidatePath("/admin/students")
+    return { success: true }
+  } catch (error) {
+    console.error("Delete all students error:", error)
+    return { error: "Failed to delete students" }
+  }
+}
+
 export async function deleteStudent(studentId: string) {
   const supabase = createServerClient()
   if (!supabase) {
